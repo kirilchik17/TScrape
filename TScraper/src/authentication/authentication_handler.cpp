@@ -10,12 +10,9 @@ using namespace td::td_api;
 using namespace std;
 using Client = td::Client;
 
-void process_updates(shared_ptr<Client> client);
-
 object_ptr<setTdlibParameters> getConfigClientParameters() {
     //TODO: Use .env for the params 
-    object_ptr<setTdlibParameters> parameters =
-        make_object<setTdlibParameters>();
+    object_ptr<setTdlibParameters> parameters = make_object<setTdlibParameters>();
     parameters->database_directory_ = "tdlib_database"; // TODO: Change to db dir path
     parameters->files_directory_ = "tdlib_files";// TODO: Change to files path
     parameters->use_test_dc_ = false;
