@@ -3,7 +3,9 @@
 //Thus there will be a thread that will always listen to the client's response and will start a function that deals with the response dependant on id
 
 
-
+//Talk with Amir - we will need a single thread that will listen to the client updates but it will be a global thread as there are more 
+//functions that chat scraping so we will need a TGClientManager that will always run the client and will have a list of tasks with their corresponding 
+//request/response ids and a function to callback to that will be written by us
 #include <td/telegram/Client.h>
 #include <iostream>
 #include <classes/TdMessage.cpp>
@@ -11,10 +13,10 @@
 #include <set>
 #include <map>
 #include <mutex>
-
 using namespace td::td_api;
 using namespace std;
 using Client = td::Client;
+
 
 std::mutex download_mutex;
 
