@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="src\authentication\authentication_handler.cpp" />
     <ClCompile Include="src\classes\TdMessage.cpp" />
+    <ClCompile Include="src\classes\UserClientManager.cpp" />
     <ClCompile Include="src\enums\AuthState.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\scraping\chat_scraping.cpp" />
