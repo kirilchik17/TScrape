@@ -58,7 +58,17 @@ private:
 				//Find a way to make it without timeout, or check if there is actually a timeout
 				auto resp = client->receive(10);
 				// add response to different function
-				currentRequest[resp.id] ;
+				if (resp.id == 0) {
+					//id = 0 is reserved for updates
+					//TODO: Add update handlers
+				}
+				//Check in which cases it will occur but ussually shouldn't happen
+				if (currentRequest[resp.id] != nullptr) {
+					currentRequest.erase(resp.id);
+					//Check if request has callback 
+
+				}
+				
 			}
 			empty = currentRequest.empty() && queuedRequests.empty();
 		}
