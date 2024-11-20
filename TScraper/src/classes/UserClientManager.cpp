@@ -5,21 +5,21 @@
 #include <map>
 #include <queue>
 #include <set>
+#include <type_traits>
 using namespace td;
 using namespace td::td_api;
 using namespace std;
 #define DEFAULT_MAX_REQ 10
 
 
-//TODO: One thread will constantly run to check if there are ressponses;
+//TODO: One thread will constantly run to check if there are responses;
 class UserClientManager {
 private:
+	bool emptyRequests = true;
 	std::shared_ptr<Client> client;
-	
-	//need to know the: id - the callback function -- maybe the send will return the response object
 	std::map<int, shared_ptr<Client::Request>> currentRequest;
-	//add a set for call back functions
-	std::queue< shared_ptr<Client::Request>> queuedRequests;
+	std::map<int, shared_ptr<Client::Response>> responses;
+	std::queue<shared_ptr<Client::Request>> queuedRequests;
 	std::set<int> queuedRequestsIds;
 	int maxConcurrentRequests;
 
@@ -38,39 +38,49 @@ private:
 		req->id = reqId;
 		return req;
 	}
-	//might need to add mutex for queing and inserts
-	//TODO: Add the ability to add callback functions
+	//TODO: might need to add mutex for queing and inserts
 	auto registerRequest(std::shared_ptr<Client::Request> req) {
+		emptyRequests = true;
 		if (currentRequest.size() == maxConcurrentRequests) {
 			queuedRequests.push(req);
 			queuedRequestsIds.insert(req->id);
 		} else {
 			currentRequest[req->id] = req;
 		}
-		//Add insert to callback functions
 	}
-
-	auto listenToClient() {
-		//TODO: Check the emptieness outside to not waste calculations
-		bool empty = true;
+	auto waitForResponse(int respId) {
 		while (true) {
-			while (!empty) {
+			if (responses.count(respId)) {
+				return responses[respId];
+			}
+		}
+	}
+	void addResponse(const Client::Response& resp) {
+		if (resp.id) {
+			responses[resp.id] = make_shared<Client::Response>(resp);
+		}
+		else {
+			//TODO: Handle update
+		}
+	}
+	auto listenToClient() {
+		while (true) {
+			while (!emptyRequests) {
 				//Find a way to make it without timeout, or check if there is actually a timeout
 				auto resp = client->receive(10);
-				// add response to different function
-				if (resp.id == 0) {
-					//id = 0 is reserved for updates
-					//TODO: Add update handlers
+				addResponse(resp);
+				currentRequest.erase(resp.id);
+				//Adding next request
+				if (!queuedRequests.empty()) {
+					auto req = queuedRequests.front();
+					currentRequest.insert(make_pair(req->id, req));
+					//Erasing from queue
+					queuedRequestsIds.erase(req->id);
+					queuedRequests.pop();
 				}
-				//Check in which cases it will occur but ussually shouldn't happen
-				if (currentRequest[resp.id] != nullptr) {
-					currentRequest.erase(resp.id);
-					//Check if request has callback 
-
-				}
-				
+				if (queuedRequests.empty() && currentRequest.empty())
+					emptyRequests = true;
 			}
-			empty = currentRequest.empty() && queuedRequests.empty();
 		}
 	}
 
@@ -79,20 +89,29 @@ public:
 		client(move(client)), maxConcurrentRequests(maxConcurrentRequests) 
 	{
 		currentRequest = std::map<int, shared_ptr<Client::Request>>();
+		responses = std::map<int, shared_ptr<Client::Response>>();
 		queuedRequests = std::queue<shared_ptr<Client::Request>>();
 		queuedRequestsIds = std::set<int>();
-	}
-	//Maybe should have a return type so it will be a object
-	//Or maybe have send and sendAsync in order to prevent confusion
-	bool send(object_ptr<Function> tdFunc) {
-		auto req = createRequest(std::move(tdFunc));
-		if (currentRequest.size() == maxConcurrentRequests) {
-			queuedRequests.push(req);
-			queuedRequestsIds.insert(req->id);
-			//wait for response
-		}
-		concu
+		//TODO: Run thread to start listening to updates
 	}
 
+	object_ptr<Object> send(object_ptr<Function> tdFunc) {
+		auto req = createRequest(std::move(tdFunc));
+		registerRequest(req);
+		auto response = waitForResponse(req->id);
+		responses.erase(response->id);
+		return move(response->object);
+	}
+
+	template <typename Callback, typename... Args>
+	auto sendWithCallback(object_ptr<Function> tdFunc, Callback&& callback, Args&&... args) {
+		auto req = createRequest(std::move(tdFunc));
+		registerRequest(req);
+		auto response = waitForResponse(req->id);
+		responses.erase(response->id);
+		return std::invoke(std::forward<Callback>(callback),
+			move(response->object),
+			std::forward<Args>(args)...);
+	}
 	
 };
