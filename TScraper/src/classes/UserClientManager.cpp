@@ -13,7 +13,6 @@ using namespace std;
 
 
 //TODO: One thread will constantly run to check if there are responses;
-//TODO: Authorize the client
 class UserClientManager {
 private:
 	bool emptyRequests = true;
@@ -39,7 +38,6 @@ private:
 		req->id = reqId;
 		return req;
 	}
-
 	//TODO: might need to add mutex for queing and inserts
 	auto registerRequest(std::shared_ptr<Client::Request> req) {
 		emptyRequests = true;
