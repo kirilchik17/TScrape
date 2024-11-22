@@ -8,9 +8,6 @@
 #include <atomic>
 #include <set>
 #include <type_traits>
-using namespace td;
-using namespace td::td_api;
-using namespace std;
 #define DEFAULT_MAX_REQ 10
 
 
@@ -18,10 +15,10 @@ using namespace std;
 class UserClientManager {
 private:
 	std::atomic<bool> emptyRequests = true;
-	std::unique_ptr<Client> client;
-	std::map<int, shared_ptr<Client::Request>> currentRequest;
-	std::map<int, shared_ptr<Client::Response>> responses;
-	std::queue<shared_ptr<Client::Request>> queuedRequests;
+	std::unique_ptr<td::Client> client;
+	std::map<int, std::shared_ptr<td::Client::Request>> currentRequest;
+	std::map<int, std::shared_ptr<td::Client::Response>> responses;
+	std::queue<std::shared_ptr<td::Client::Request>> queuedRequests;
 	std::set<int> queuedRequestsIds;
 	int maxConcurrentRequests;
 
@@ -33,15 +30,15 @@ private:
 		} while (currentRequest.count(id) > 0 || queuedRequestsIds.count(id) > 0 || !id);
 		return id;
 	}
-	shared_ptr<Client::Request> createRequest(object_ptr<Function> tdFunc) {
+	std::shared_ptr<td::Client::Request> createRequest(td::td_api::object_ptr<td::td_api::Function> tdFunc) {
 		int reqId = getRandomId();
-		auto req = make_shared<Client::Request>();
+		auto req = std::make_shared<td::Client::Request>();
 		req->function = std::move(tdFunc);
 		req->id = reqId;
 		return req;
 	}
 	//TODO: might need to add mutex for queing and inserts
-	auto registerRequest(std::shared_ptr<Client::Request> req) {
+	auto registerRequest(std::shared_ptr<td::Client::Request> req) {
 		emptyRequests = true;
 		if (currentRequest.size() == maxConcurrentRequests) {
 			queuedRequests.push(req);
@@ -57,9 +54,9 @@ private:
 			}
 		}
 	}
-	void addResponse(const Client::Response& resp) {
+	void addResponse(const td::Client::Response& resp) {
 		if (resp.id) {
-			responses[resp.id] = make_shared<Client::Response>(resp);
+			responses[resp.id] = std::make_shared<td::Client::Response>(resp);
 		}
 		else {
 			//TODO: Handle update
@@ -88,26 +85,26 @@ private:
 
 public:
 	//Write a function that will initialize a client
-	UserClientManager(std::unique_ptr<Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ):
+	UserClientManager(std::unique_ptr<td::Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ):
 		client(move(client)), maxConcurrentRequests(maxConcurrentRequests) 
 	{
-		currentRequest = std::map<int, shared_ptr<Client::Request>>();
-		responses = std::map<int, shared_ptr<Client::Response>>();
-		queuedRequests = std::queue<shared_ptr<Client::Request>>();
+		currentRequest = std::map<int, std::shared_ptr<td::Client::Request>>();
+		responses = std::map<int, std::shared_ptr<td::Client::Response>>();
+		queuedRequests = std::queue<std::shared_ptr<td::Client::Request>>();
 		queuedRequestsIds = std::set<int>();
 		std::thread updateListener(listenToClient);
 	}
 
-	object_ptr<Object> send(object_ptr<Function> tdFunc) {
+	td::td_api::object_ptr<td::td_api::Object> send(td::td_api::object_ptr<td::td_api::Function> tdFunc) {
 		auto req = createRequest(std::move(tdFunc));
 		registerRequest(req);
 		auto response = waitForResponse(req->id);
 		responses.erase(response->id);
-		return move(response->object);
+		return std::move(response->object);
 	}
 
 	template <typename Callback, typename... Args>
-	auto sendWithCallback(object_ptr<Function> tdFunc, Callback&& callback, Args&&... args) {
+	auto sendWithCallback(td::td_api::object_ptr<td::td_api::Function> tdFunc, Callback&& callback, Args&&... args) {
 		auto req = createRequest(std::move(tdFunc));
 		registerRequest(req);
 		auto response = waitForResponse(req->id);
