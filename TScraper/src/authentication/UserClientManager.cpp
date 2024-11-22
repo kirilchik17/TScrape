@@ -18,7 +18,7 @@ using namespace std;
 class UserClientManager {
 private:
 	std::atomic<bool> emptyRequests = true;
-	std::shared_ptr<Client> client;
+	std::unique_ptr<Client> client;
 	std::map<int, shared_ptr<Client::Request>> currentRequest;
 	std::map<int, shared_ptr<Client::Response>> responses;
 	std::queue<shared_ptr<Client::Request>> queuedRequests;
@@ -88,7 +88,7 @@ private:
 
 public:
 	//Write a function that will initialize a client
-	UserClientManager(std::shared_ptr<Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ):
+	UserClientManager(std::unique_ptr<Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ):
 		client(move(client)), maxConcurrentRequests(maxConcurrentRequests) 
 	{
 		currentRequest = std::map<int, shared_ptr<Client::Request>>();

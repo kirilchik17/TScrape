@@ -1,4 +1,5 @@
 #include <td/telegram/Client.h>
+#include <authentication/UserClientManager.cpp>
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -25,8 +26,9 @@ object_ptr<setTdlibParameters> getConfigClientParameters() {
 }
 
 auto getNewClient() {
-    auto client = make_shared<Client>();
+    auto client = make_unique<Client>();
     cout << "TDLib client initialized." << endl;
+    auto manager = make_shared<UserClientManager> client;
 }
 auto startInitClient(shared_ptr<Client> client) {
     auto params = getConfigClientParameters();
