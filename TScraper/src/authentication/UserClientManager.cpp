@@ -5,7 +5,7 @@
 #include <map>
 #include <queue>
 #include <thread>
-#include <thread>
+#include <atomic>
 #include <set>
 #include <type_traits>
 using namespace td;
@@ -17,7 +17,7 @@ using namespace std;
 //TODO: One thread will constantly run to check if there are responses;
 class UserClientManager {
 private:
-	bool emptyRequests = true;
+	std::atomic<bool> emptyRequests = true;
 	std::shared_ptr<Client> client;
 	std::map<int, shared_ptr<Client::Request>> currentRequest;
 	std::map<int, shared_ptr<Client::Response>> responses;

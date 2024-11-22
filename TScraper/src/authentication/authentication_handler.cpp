@@ -4,7 +4,6 @@
 #include <chrono>
 #include <future>
 #include <memory>
-#include "enums/AuthState.cpp"
 
 using namespace td::td_api;
 using namespace std;
