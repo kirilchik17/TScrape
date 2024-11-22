@@ -69,11 +69,9 @@ private:
 				auto resp = client->receive(10);
 				addResponse(resp);
 				currentRequest.erase(resp.id);
-				//Adding next request
 				if (!queuedRequests.empty()) {
 					auto req = queuedRequests.front();
 					currentRequest.insert(make_pair(req->id, req));
-					//Erasing from queue
 					queuedRequestsIds.erase(req->id);
 					queuedRequests.pop();
 				}
