@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <map>
 #include <queue>
+#include <thread>
+#include <thread>
 #include <set>
 #include <type_traits>
 using namespace td;
@@ -85,6 +87,7 @@ private:
 	}
 
 public:
+	//Write a function that will initialize a client
 	UserClientManager(std::shared_ptr<Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ):
 		client(move(client)), maxConcurrentRequests(maxConcurrentRequests) 
 	{
@@ -92,7 +95,7 @@ public:
 		responses = std::map<int, shared_ptr<Client::Response>>();
 		queuedRequests = std::queue<shared_ptr<Client::Request>>();
 		queuedRequestsIds = std::set<int>();
-		//TODO: Run thread to start listening to updates
+		std::thread updateListener(listenToClient);
 	}
 
 	object_ptr<Object> send(object_ptr<Function> tdFunc) {
