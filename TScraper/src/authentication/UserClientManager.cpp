@@ -50,7 +50,7 @@ private:
 			currentRequest[req->id] = req;
 		}
 	}
-	auto waitForResponse(int respId) {
+	auto waitForResponse(const int& respId) {
 		while (true) {
 			if (responses.count(respId)) {
 				return responses[respId];
@@ -84,7 +84,7 @@ private:
 		}
 	}
 
-	UserClientManager(std::unique_ptr<td::Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ) :
+	UserClientManager(std::unique_ptr<td::Client> client, const int& maxConcurrentRequests = DEFAULT_MAX_REQ) :
 		client(move(client)), maxConcurrentRequests(maxConcurrentRequests)
 	{
 		currentRequest = std::map<int, std::shared_ptr<td::Client::Request>>();
@@ -141,7 +141,7 @@ private:
 	}
 public:
 
-	static std::shared_ptr<UserClientManager> initiateClient(std::string phoneNumber) {
+	static std::shared_ptr<UserClientManager> initiateClient(const std::string& phoneNumber) {
 		auto client = std::make_unique<td::Client>();
 		std::cout << "TDLib client initialized." << std::endl;
 		auto manager = std::make_shared<UserClientManager>(move(client));
@@ -162,6 +162,16 @@ public:
 			std::cout << "you pussy" << std::endl;
 			return nullptr;
 		}
+	}
+	bool authorizeClient(const std::string& authCode) {
+		auto checkAuthFunc = td::td_api::make_object<td::td_api::checkAuthenticationCode>(authCode);
+		auto resp = send(std::move(checkAuthFunc));
+		auto afterCodeAuthState = proccessAuthUpdate(std::move(resp));
+		auto success = afterCodeAuthState == Successful;
+		isAuthorized = success;
+		if (!success)
+			std::cerr << "Failed to authorize td_lib client" << std::endl;
+		return success;
 	}
 
 	td::td_api::object_ptr<td::td_api::Object> send(td::td_api::object_ptr<td::td_api::Function> tdFunc) {
