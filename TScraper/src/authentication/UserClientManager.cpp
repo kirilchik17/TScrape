@@ -9,15 +9,16 @@
 #include <set>
 #include <type_traits>
 #include <iostream>
+#include <mutex>
 #include "AuthState.cpp"
 #define DEFAULT_MAX_REQ 10
 
 
-//TODO: One thread will constantly run to check if there are responses;
 class UserClientManager {
 private:
 	std::atomic<bool> emptyRequests = true;
 	bool isAuthorized = false;
+	std::mutex registrationMutex;
 	std::unique_ptr<td::Client> client;
 	std::map<int, std::shared_ptr<td::Client::Request>> currentRequest;
 	std::map<int, std::shared_ptr<td::Client::Response>> responses;
@@ -43,6 +44,7 @@ private:
 	//TODO: might need to add mutex for queing and inserts
 	auto registerRequest(std::shared_ptr<td::Client::Request> req) {
 		emptyRequests = true;
+		std::lock_guard<std::mutex> lock(registrationMutex);
 		if (currentRequest.size() == maxConcurrentRequests) {
 			queuedRequests.push(req);
 			queuedRequestsIds.insert(req->id);
@@ -71,7 +73,9 @@ private:
 				//Find a way to make it without timeout, or check if there is actually a timeout
 				auto resp = client->receive(10);
 				addResponse(resp);
+				//id specific so no need for mutex
 				currentRequest.erase(resp.id);
+				std::lock_guard<std::mutex> lock(registrationMutex);
 				if (!queuedRequests.empty()) {
 					auto req = queuedRequests.front();
 					currentRequest.insert(make_pair(req->id, req));
