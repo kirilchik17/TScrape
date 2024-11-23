@@ -8,6 +8,8 @@
 #include <atomic>
 #include <set>
 #include <type_traits>
+#include <iostream>
+#include "AuthState.cpp"
 #define DEFAULT_MAX_REQ 10
 
 
@@ -15,6 +17,7 @@
 class UserClientManager {
 private:
 	std::atomic<bool> emptyRequests = true;
+	bool isAuthorized = false;
 	std::unique_ptr<td::Client> client;
 	std::map<int, std::shared_ptr<td::Client::Request>> currentRequest;
 	std::map<int, std::shared_ptr<td::Client::Response>> responses;
@@ -81,16 +84,84 @@ private:
 		}
 	}
 
-public:
-	//Write a function that will initialize a client
-	UserClientManager(std::unique_ptr<td::Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ):
-		client(move(client)), maxConcurrentRequests(maxConcurrentRequests) 
+	UserClientManager(std::unique_ptr<td::Client> client, int maxConcurrentRequests = DEFAULT_MAX_REQ) :
+		client(move(client)), maxConcurrentRequests(maxConcurrentRequests)
 	{
 		currentRequest = std::map<int, std::shared_ptr<td::Client::Request>>();
 		responses = std::map<int, std::shared_ptr<td::Client::Response>>();
 		queuedRequests = std::queue<std::shared_ptr<td::Client::Request>>();
 		queuedRequestsIds = std::set<int>();
 		std::thread updateListener(listenToClient);
+	}
+
+	static td::td_api::object_ptr<td::td_api::setTdlibParameters> getConfigClientParameters() {
+		//TODO: Use .env for the params 
+		td::td_api::object_ptr<td::td_api::setTdlibParameters> parameters
+			= td::td_api::make_object<td::td_api::setTdlibParameters>();
+		parameters->database_directory_ = "tdlib_database"; // TODO: Change to db dir path
+		parameters->files_directory_ = "tdlib_files";// TODO: Change to files path
+		parameters->use_test_dc_ = false;
+		parameters->api_id_ = 123456;  // TODO: Use API id
+		parameters->api_hash_ = "your_api_hash"; // TODO: Use API hash
+		parameters->system_language_code_ = "en";
+		parameters->device_model_ = "Desktop";
+		parameters->system_version_ = "1.0";//write our version
+		parameters->application_version_ = "1.0";
+		return parameters;
+	}
+	auto proccessAuthUpdate(td::td_api::object_ptr<td::td_api::Object> response) {
+		if (response->get_id() == td::td_api::updateAuthorizationState::ID) {
+			auto authStateObj = td::move_tl_object_as<td::td_api::updateAuthorizationState>(response).get();
+			auto stateId = authStateObj->authorization_state_->get_id();
+			switch (stateId) {
+			case td::td_api::authorizationStateWaitTdlibParameters::ID:
+				// Already sent TDLib parameters
+				break;
+			case td::td_api::authorizationStateWaitPhoneNumber::ID:
+				std::cout << "Waiting for user {userId} phone number" << std::endl;
+				return AuthState::PhoneRequired;
+
+			case td::td_api::authorizationStateWaitCode::ID:
+				std::cout << "Waiting for user {userId} auth code" << std::endl;
+				return AuthState::AuthCodeRequired;
+
+			case td::td_api::authorizationStateReady::ID:
+				std::cout << "Authentication successful!" << std::endl;
+				return AuthState::Successful;
+
+			case td::td_api::authorizationStateClosed::ID:
+				std::cout << "TDLib client closed." << std::endl;
+				return AuthState::Closed;
+
+			default:
+				std::cerr << "Unexpected authorization state: " << stateId << std::endl;
+				return AuthState::Unknown;
+			}
+		}
+	}
+public:
+
+	static std::shared_ptr<UserClientManager> initiateClient(std::string phoneNumber) {
+		auto client = std::make_unique<td::Client>();
+		std::cout << "TDLib client initialized." << std::endl;
+		auto manager = std::make_shared<UserClientManager>(move(client));
+		auto params = getConfigClientParameters();
+		auto paramsResponse = manager->send(std::move(params));
+		auto afterParamsAuthState = manager->proccessAuthUpdate(std::move(paramsResponse));
+		if (afterParamsAuthState == PhoneRequired) {
+			//TODO: add td::td_api::phoneNumberAuthenticationSettings()
+			auto sendPhoneFunc = td::td_api::make_object<td::td_api::setAuthenticationPhoneNumber>(phoneNumber, nullptr);
+			auto phoneResp = manager->send(std::move(sendPhoneFunc));
+			auto phoneAuthState = manager->proccessAuthUpdate(std::move(phoneResp));
+			if(phoneAuthState != AuthCodeRequired)
+				//TODO: Deal with error nib
+				std::cerr << "Failed to send phone for authorization" << std::endl;
+			return manager;
+		} else {
+			std::cerr << "Failed to create client" << std::endl;
+			std::cout << "you pussy" << std::endl;
+			return nullptr;
+		}
 	}
 
 	td::td_api::object_ptr<td::td_api::Object> send(td::td_api::object_ptr<td::td_api::Function> tdFunc) {
