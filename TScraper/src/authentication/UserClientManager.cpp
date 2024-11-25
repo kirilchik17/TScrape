@@ -98,12 +98,12 @@ private:
 		std::thread updateListener(listenToClient);
 	}
 
-	static td::td_api::object_ptr<td::td_api::setTdlibParameters> getConfigClientParameters() {
+	static td::td_api::object_ptr<td::td_api::setTdlibParameters> getConfigClientParameters(const std::string sessionDirectory = "") {
 		//TODO: Use .env for the params 
 		td::td_api::object_ptr<td::td_api::setTdlibParameters> parameters
 			= td::td_api::make_object<td::td_api::setTdlibParameters>();
-		parameters->database_directory_ = "tdlib_database"; // TODO: Change to db dir path
-		parameters->files_directory_ = "tdlib_files";// TODO: Change to files path
+		parameters->database_directory_ = sessionDirectory == "" ? "sessions" : sessionDirectory; // TODO: Change to db dir path
+		parameters->files_directory_ = (sessionDirectory == "" ? "sessions" : sessionDirectory) + "/tdlib_files";// TODO: Change to files path
 		parameters->use_test_dc_ = false;
 		parameters->api_id_ = 123456;  // TODO: Use API id
 		parameters->api_hash_ = "your_api_hash"; // TODO: Use API hash
@@ -144,7 +144,24 @@ private:
 		}
 	}
 public:
+	static std::shared_ptr<UserClientManager> initiateClientFromSession(const std::string& sessionPath) {
+		auto client = std::make_unique<td::Client>();
+		std::cout << "TDLib client initialized." << std::endl;
+		auto manager = std::make_shared<UserClientManager>(move(client));
+		auto params = getConfigClientParameters(sessionPath);
+		auto paramsResponse = manager->send(std::move(params));
+		auto clientState = manager->proccessAuthUpdate(std::move(paramsResponse));
+		if (clientState == Successful) {
+			std::cout << "Successful client initialization from session." << std::endl;
+			return manager;
+		}
+		else {
+			std::cerr << "Failed to initialize client form session" << std::endl;
+			return nullptr;
+		}
+	}
 
+	//TODO: the docs say that the session continuity is automatic so there is no need to do anything
 	static std::shared_ptr<UserClientManager> initiateClient(const std::string& phoneNumber) {
 		auto client = std::make_unique<td::Client>();
 		std::cout << "TDLib client initialized." << std::endl;
@@ -167,6 +184,7 @@ public:
 			return nullptr;
 		}
 	}
+
 	bool authorizeClient(const std::string& authCode) {
 		auto checkAuthFunc = td::td_api::make_object<td::td_api::checkAuthenticationCode>(authCode);
 		auto resp = send(std::move(checkAuthFunc));
@@ -177,7 +195,7 @@ public:
 			std::cerr << "Failed to authorize td_lib client" << std::endl;
 		return success;
 	}
-
+	//If the client is not authorized return false
 	td::td_api::object_ptr<td::td_api::Object> send(td::td_api::object_ptr<td::td_api::Function> tdFunc) {
 		auto req = createRequest(std::move(tdFunc));
 		registerRequest(req);
@@ -186,6 +204,7 @@ public:
 		return std::move(response->object);
 	}
 
+	//If the client is not authorized return false
 	template <typename Callback, typename... Args>
 	auto sendWithCallback(td::td_api::object_ptr<td::td_api::Function> tdFunc, Callback&& callback, Args&&... args) {
 		auto req = createRequest(std::move(tdFunc));
@@ -196,5 +215,4 @@ public:
 			move(response->object),
 			std::forward<Args>(args)...);
 	}
-	
 };
