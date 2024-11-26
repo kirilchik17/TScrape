@@ -21,13 +21,22 @@
     <ClCompile Include="src\scraping\chat_scraping.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\scraping\TdMessage.cpp">
+    <ClCompile Include="src\scraping\td_message.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\authentication\UserClientManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\authentication\AuthState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scraping\message_scraping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scraping\td_chat.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scraping\td_chat_type.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

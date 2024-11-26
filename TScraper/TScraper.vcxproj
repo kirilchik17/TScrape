@@ -19,7 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\scraping\TdMessage.cpp" />
+    <ClCompile Include="src\scraping\message_scraping.cpp" />
+    <ClCompile Include="src\scraping\td_chat.h" />
+    <ClCompile Include="src\scraping\td_chat_type.cpp" />
+    <ClCompile Include="src\scraping\td_message.cpp" />
     <ClCompile Include="src\authentication\UserClientManager.cpp" />
     <ClCompile Include="src\authentication\AuthState.cpp" />
     <ClCompile Include="src\main.cpp" />
