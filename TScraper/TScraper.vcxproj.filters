@@ -39,6 +39,9 @@
     <ClCompile Include="src\scraping\td_chat_type.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\scraping\td_content.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\UserManager.h">
