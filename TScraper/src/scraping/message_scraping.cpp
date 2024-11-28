@@ -3,13 +3,33 @@
 #include <scraping/td_content.cpp>
 #include <authentication/UserClientManager.cpp>
 
+std::shared_ptr<std::vector<std::shared_ptr<TdMessage>>> fetchMessagesFromChat(std::shared_ptr<UserClientManager> client, td::td_api::int53 chatId,
+    td::td_api::int53 fromMessage = 0, td::td_api::int53 offset = 0, td::td_api::int53 limit = 100, bool onlyLocal = false) {
+    //max limit of messages is 100
+    //Limit 0 will fetch the most recent message
+    auto pullMessagesFunc = td::td_api::make_object<td::td_api::getChatHistory>(chatId, fromMessage, offset, limit, true);
+    auto response = client->send(std::move(pullMessagesFunc));
+    if (response->get_id() != td::td_api::messages::ID) {
+        return nullptr;
+    }
+    else {
+        auto chatMessages = std::make_shared<std::vector<std::shared_ptr<TdMessage>>>();
+        auto messages = td::td_api::move_object_as<td::td_api::messages>(response);
+        for (auto& message : messages->messages_) {
+            auto tdMsg = proccesMessage(client, message);
+            chatMessages->push_back(tdMsg);
+        }
+    }
+}
 
-std::shared_ptr<TdMessage> proccesMessage(std::shared_ptr<UserClientManager> client, td::td_api::object_ptr<td::td_api::message> msg) {
+
+std::shared_ptr<TdMessage> proccesMessage(std::shared_ptr<UserClientManager> client, td::td_api::object_ptr<td::td_api::message>& msg) {
     if (!msg || !msg->content_)
         return nullptr;
     auto tdMsg = std::make_shared<TdMessage>();
     tdMsg->chatId = msg->chat_id_;
     tdMsg->dateTicks = msg->date_;
+    tdMsg->messageId = msg->id_;
     // msg->sender_id_ is not and does not include the ID of the sender
 
     //TODO: Make sure content and other fields aren't null before accessing them

@@ -6,6 +6,7 @@ using string = std::string;
 class TdMessage {
 public:
 	string textContent;
+	int64_t messageId;
 	string chatId;
 	string senderId;
 	std::shared_ptr<TdContent> content;
