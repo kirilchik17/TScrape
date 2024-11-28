@@ -10,5 +10,4 @@ public:
 	string senderId;
 	std::shared_ptr<TdContent> content;
 	int dateTicks;
-	bool hasFileContent = true;
 };

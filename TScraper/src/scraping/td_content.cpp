@@ -6,10 +6,15 @@ public:
 	int id;
 };
 class TdPhoto : public TdContent{
-
+public:
+	int width;
+	int height;
 };
 class TdVideo : public TdContent {
-
+public: 
+	int duration;
+	int width;
+	int height;
 };
 class TdAudio : public TdContent {
 public:
@@ -17,5 +22,12 @@ public:
 	int duration;
 };
 class TdDocument : public TdContent {
-
+public:
+	std::string mimetype;
+};
+class TdAnimation : public TdContent {
+public:
+	int width;
+	int height;
+	int duration;
 };

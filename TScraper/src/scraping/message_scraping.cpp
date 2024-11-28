@@ -22,6 +22,8 @@ std::shared_ptr<TdMessage> proccesMessage(std::shared_ptr<UserClientManager> cli
         auto bigPhoto = std::move(photoMsg->photo_->sizes_.front());
         content->id = bigPhoto->photo_->id_;
         content->size = bigPhoto->photo_->expected_size_;
+        content->width = bigPhoto->width_;
+        content->height = bigPhoto->height_;
         tdMsg->content = content;
         break;
     }
@@ -37,23 +39,43 @@ std::shared_ptr<TdMessage> proccesMessage(std::shared_ptr<UserClientManager> cli
         tdMsg->content = content;
         break;
     }
-
     case td::td_api::messageVideo::ID: {
-        tdMsg->textContent = td::move_tl_object_as<td::td_api::messageVideo>(msg->content_)->caption_->text_;
+        auto videoMsg = td::move_tl_object_as<td::td_api::messageVideo>(msg->content_);
+        auto content = std::make_shared<TdVideo>();
+        tdMsg->textContent = videoMsg->caption_->text_;
+        content->size = videoMsg->video_->video_->expected_size_;
+        content->duration = videoMsg->video_->duration_;
+        content->title = videoMsg->video_->file_name_;
+        content->id = videoMsg->video_->video_->id_;
+        content->height = videoMsg->video_->height_;
+        content->width = videoMsg->video_->width_;
         break;
     }
     case td::td_api::messageText::ID: {
         tdMsg->textContent = td::move_tl_object_as<td::td_api::messageText>(msg->content_)->text_->text_;
-        tdMsg->hasFileContent = false;
+        tdMsg->content = nullptr;
         break;
     }
     case td::td_api::messageDocument::ID: {
-        tdMsg->textContent = td::move_tl_object_as<td::td_api::messageDocument>(msg->content_)->caption_->text_;
+        auto docMsg = td::move_tl_object_as<td::td_api::messageDocument>(msg->content_);
+        tdMsg->textContent = docMsg->caption_->text_;
+        auto content = std::make_shared<TdDocument>();
+        content->id = docMsg->document_->document_->id_;
+        content->size = docMsg->document_->document_->expected_size_;
+        content->title = docMsg->document_->file_name_;
+        content->mimetype = docMsg->document_->mime_type_;
         break;
     }
-
     case td::td_api::messageAnimation::ID: {
-        tdMsg->textContent = td::move_tl_object_as<td::td_api::messageAnimation>(msg->content_)->caption_->text_;
+        auto animMsg = td::move_tl_object_as<td::td_api::messageAnimation>(msg->content_);
+        tdMsg->textContent = animMsg->caption_->text_;
+        auto content = std::make_shared<TdAnimation>();
+        content->id = animMsg->animation_->animation_->id_;
+        content->size = animMsg->animation_->animation_->expected_size_;
+        content->title = animMsg->animation_->file_name_;
+        content->height = animMsg->animation_->height_;
+        content->width = animMsg->animation_->width_;
+        content->duration = animMsg->animation_->duration_;
         break;
     }
     default:
